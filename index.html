@@ -148,6 +148,21 @@
             border-radius: 5px;
         }
         
+        .share-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 10px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .share-url {
+            width: 100%;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
         @media (max-width: 600px) {
             .add-category, .expense-input {
                 flex-direction: column;
@@ -187,11 +202,19 @@
             <div class="add-category">
                 <input type="text" id="category-input" placeholder="Category name (e.g., Groceries, Rent)">
                 <button onclick="addCategory()">Add Category</button>
-                <button onclick="exportData()">Export Data</button>
-                <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
-                <button onclick="document.getElementById('import-file').click()">Import Data</button>
             </div>
             <div id="categories" class="categories"></div>
+        </div>
+        
+        <div class="share-section">
+            <h3>Share Your Budget</h3>
+            <p>Generate a shareable URL to access your budget data on any device:</p>
+            <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                <button onclick="generateShareURL()">Generate Share URL</button>
+                <button onclick="copyShareURL()">Copy URL</button>
+            </div>
+            <input type="text" id="share-url" class="share-url" placeholder="Your shareable URL will appear here" readonly>
+            <small style="color: #666;">Share this URL to access your budget data between computers</small>
         </div>
     </div>
 
@@ -352,44 +375,43 @@
 
         // Load data when page loads
         window.onload = function() {
+            loadFromURL();
             loadData();
         };
 
-        function exportData() {
-            const data = {
-                monthlyIncome: monthlyIncome,
-                categories: categories,
-                exportDate: new Date().toISOString()
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `budget-data-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
+        // URL sharing functions
+        function generateShareURL() {
+            const data = { monthlyIncome, categories };
+            const encoded = btoa(JSON.stringify(data));
+            const shareURL = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+            document.getElementById('share-url').value = shareURL;
         }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        if (confirm('This will replace all current data. Continue?')) {
-                            monthlyIncome = data.monthlyIncome || 0;
-                            categories = data.categories || {};
-                            renderCategories();
-                            updateDisplay();
-                            saveData();
-                            alert('Data imported successfully!');
-                        }
-                    } catch (error) {
-                        alert('Invalid file format!');
-                    }
-                };
-                reader.readAsText(file);
+        
+        function copyShareURL() {
+            const urlInput = document.getElementById('share-url');
+            if (urlInput.value) {
+                urlInput.select();
+                document.execCommand('copy');
+                alert('URL copied to clipboard!');
+            } else {
+                alert('Generate a share URL first!');
+            }
+        }
+        
+        function loadFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const data = params.get('data');
+            if (data) {
+                try {
+                    const decoded = JSON.parse(atob(data));
+                    monthlyIncome = decoded.monthlyIncome || 0;
+                    categories = decoded.categories || {};
+                    renderCategories();
+                    updateDisplay();
+                    saveData();
+                } catch (error) {
+                    console.error('Invalid URL data');
+                }
             }
         }
 
