@@ -200,7 +200,8 @@
         <div class="category-section">
             <h3>Budget Categories</h3>
             <div class="add-category">
-                <input type="text" id="category-input" placeholder="Category name (e.g., Groceries, Rent)">
+                <input type="text" id="category-input" placeholder="Category name (e.g., Food, Rent)">
+                <input type="number" id="budget-input" placeholder="Monthly budget" step="0.01">
                 <button onclick="addCategory()">Add Category</button>
             </div>
             <div id="categories" class="categories"></div>
@@ -234,11 +235,18 @@
         }
 
         function addCategory() {
-            const input = document.getElementById('category-input');
-            const name = input.value.trim();
-            if (name && !categories[name]) {
-                categories[name] = [];
-                input.value = '';
+            const nameInput = document.getElementById('category-input');
+            const budgetInput = document.getElementById('budget-input');
+            const name = nameInput.value.trim();
+            const budget = parseFloat(budgetInput.value);
+            
+            if (name && budget > 0 && !categories[name]) {
+                categories[name] = {
+                    budget: budget,
+                    expenses: []
+                };
+                nameInput.value = '';
+                budgetInput.value = '';
                 renderCategories();
                 saveData();
             }
@@ -261,7 +269,7 @@
             const amount = parseFloat(amountInput.value);
             
             if (description && amount && amount > 0) {
-                categories[categoryName].push({
+                categories[categoryName].expenses.push({
                     description: description,
                     amount: amount,
                     date: new Date().toLocaleDateString()
@@ -276,14 +284,14 @@
         }
 
         function deleteExpense(categoryName, index) {
-            categories[categoryName].splice(index, 1);
+            categories[categoryName].expenses.splice(index, 1);
             renderCategories();
             updateDisplay();
             saveData();
         }
 
         function getCategoryTotal(categoryName) {
-            return categories[categoryName].reduce((sum, expense) => sum + expense.amount, 0);
+            return categories[categoryName].expenses.reduce((sum, expense) => sum + expense.amount, 0);
         }
 
         function getTotalSpent() {
@@ -319,23 +327,27 @@
                 const categoryDiv = document.createElement('div');
                 categoryDiv.className = 'category';
                 
-                const categoryTotal = getCategoryTotal(categoryName);
+                const budget = categories[categoryName].budget;
+                const spent = getCategoryTotal(categoryName);
+                const remaining = budget - spent;
+                const remainingColor = remaining < 0 ? '#f44336' : remaining < budget * 0.1 ? '#ff9800' : '#4CAF50';
                 
                 categoryDiv.innerHTML = `
                     <div class="category-header">
                         <span class="category-name">${categoryName}</span>
                         <div>
-                            <span class="category-total">$${categoryTotal.toFixed(2)}</span>
+                            <span style="color: #666;">Budget: $${budget.toFixed(2)} | Spent: $${spent.toFixed(2)} | </span>
+                            <span style="color: ${remainingColor}; font-weight: bold;">Remaining: $${remaining.toFixed(2)}</span>
                             <button class="delete-btn" onclick="deleteCategory('${categoryName}')">Delete</button>
                         </div>
                     </div>
                     <div class="expense-input">
-                        <input type="text" id="desc-${categoryName}" placeholder="Expense description">
+                        <input type="text" id="desc-${categoryName}" placeholder="Daily expense description">
                         <input type="number" id="amount-${categoryName}" placeholder="Amount" step="0.01">
                         <button onclick="addExpense('${categoryName}')">Add Expense</button>
                     </div>
                     <div class="expenses">
-                        ${categories[categoryName].map((expense, index) => `
+                        ${categories[categoryName].expenses.map((expense, index) => `
                             <div class="expense-item">
                                 <div>
                                     <strong>${expense.description}</strong>
@@ -368,6 +380,17 @@
                 const data = JSON.parse(saved);
                 monthlyIncome = data.monthlyIncome || 0;
                 categories = data.categories || {};
+                
+                // Convert old format to new format
+                Object.keys(categories).forEach(name => {
+                    if (Array.isArray(categories[name])) {
+                        categories[name] = {
+                            budget: 0,
+                            expenses: categories[name]
+                        };
+                    }
+                });
+                
                 renderCategories();
                 updateDisplay();
             }
