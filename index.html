@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Budget Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .income-section {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .budget-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+        }
+        
+        .income-card { background: #4CAF50; }
+        .spent-card { background: #f44336; }
+        .remaining-card { background: #2196F3; }
+        
+        .category-section {
+            margin-bottom: 30px;
+        }
+        
+        .add-category {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        input, button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #5a6fd8;
+        }
+        
+        .delete-btn {
+            background: #f44336;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .delete-btn:hover {
+            background: #d32f2f;
+        }
+        
+        .categories {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .category {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .category-name {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .category-total {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        .expense-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .expenses {
+            margin-top: 10px;
+        }
+        
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: white;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        
+        @media (max-width: 600px) {
+            .add-category, .expense-input {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Monthly Budget Tracker</h1>
+        
+        <div class="income-section">
+            <h3>Monthly Income</h3>
+            <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                <input type="number" id="income-input" placeholder="Enter monthly income" step="0.01">
+                <button onclick="setIncome()">Set Income</button>
+            </div>
+        </div>
+        
+        <div class="budget-summary">
+            <div class="summary-card income-card">
+                <h3>Monthly Income</h3>
+                <div id="total-income">$0.00</div>
+            </div>
+            <div class="summary-card spent-card">
+                <h3>Total Spent</h3>
+                <div id="total-spent">$0.00</div>
+            </div>
+            <div class="summary-card remaining-card">
+                <h3>Remaining</h3>
+                <div id="remaining-budget">$0.00</div>
+            </div>
+        </div>
+        
+        <div class="category-section">
+            <h3>Budget Categories</h3>
+            <div class="add-category">
+                <input type="text" id="category-input" placeholder="Category name (e.g., Groceries, Rent)">
+                <button onclick="addCategory()">Add Category</button>
+                <button onclick="exportData()">Export Data</button>
+                <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
+                <button onclick="document.getElementById('import-file').click()">Import Data</button>
+            </div>
+            <div id="categories" class="categories"></div>
+        </div>
+    </div>
+
+    <script>
+        let monthlyIncome = 0;
+        let categories = {};
+
+        function setIncome() {
+            const input = document.getElementById('income-input');
+            const amount = parseFloat(input.value);
+            if (amount && amount > 0) {
+                monthlyIncome = amount;
+                input.value = '';
+                updateDisplay();
+                saveData();
+            }
+        }
+
+        function addCategory() {
+            const input = document.getElementById('category-input');
+            const name = input.value.trim();
+            if (name && !categories[name]) {
+                categories[name] = [];
+                input.value = '';
+                renderCategories();
+                saveData();
+            }
+        }
+
+        function deleteCategory(name) {
+            if (confirm(`Delete category "${name}" and all its expenses?`)) {
+                delete categories[name];
+                renderCategories();
+                updateDisplay();
+                saveData();
+            }
+        }
+
+        function addExpense(categoryName) {
+            const descInput = document.getElementById(`desc-${categoryName}`);
+            const amountInput = document.getElementById(`amount-${categoryName}`);
+            
+            const description = descInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            
+            if (description && amount && amount > 0) {
+                categories[categoryName].push({
+                    description: description,
+                    amount: amount,
+                    date: new Date().toLocaleDateString()
+                });
+                
+                descInput.value = '';
+                amountInput.value = '';
+                renderCategories();
+                updateDisplay();
+                saveData();
+            }
+        }
+
+        function deleteExpense(categoryName, index) {
+            categories[categoryName].splice(index, 1);
+            renderCategories();
+            updateDisplay();
+            saveData();
+        }
+
+        function getCategoryTotal(categoryName) {
+            return categories[categoryName].reduce((sum, expense) => sum + expense.amount, 0);
+        }
+
+        function getTotalSpent() {
+            return Object.keys(categories).reduce((total, categoryName) => {
+                return total + getCategoryTotal(categoryName);
+            }, 0);
+        }
+
+        function updateDisplay() {
+            const totalSpent = getTotalSpent();
+            const remaining = monthlyIncome - totalSpent;
+            
+            document.getElementById('total-income').textContent = `$${monthlyIncome.toFixed(2)}`;
+            document.getElementById('total-spent').textContent = `$${totalSpent.toFixed(2)}`;
+            document.getElementById('remaining-budget').textContent = `$${remaining.toFixed(2)}`;
+            
+            // Change color based on remaining budget
+            const remainingCard = document.querySelector('.remaining-card');
+            if (remaining < 0) {
+                remainingCard.style.background = '#f44336';
+            } else if (remaining < monthlyIncome * 0.1) {
+                remainingCard.style.background = '#ff9800';
+            } else {
+                remainingCard.style.background = '#2196F3';
+            }
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('categories');
+            container.innerHTML = '';
+            
+            Object.keys(categories).forEach(categoryName => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category';
+                
+                const categoryTotal = getCategoryTotal(categoryName);
+                
+                categoryDiv.innerHTML = `
+                    <div class="category-header">
+                        <span class="category-name">${categoryName}</span>
+                        <div>
+                            <span class="category-total">$${categoryTotal.toFixed(2)}</span>
+                            <button class="delete-btn" onclick="deleteCategory('${categoryName}')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="expense-input">
+                        <input type="text" id="desc-${categoryName}" placeholder="Expense description">
+                        <input type="number" id="amount-${categoryName}" placeholder="Amount" step="0.01">
+                        <button onclick="addExpense('${categoryName}')">Add Expense</button>
+                    </div>
+                    <div class="expenses">
+                        ${categories[categoryName].map((expense, index) => `
+                            <div class="expense-item">
+                                <div>
+                                    <strong>${expense.description}</strong>
+                                    <small style="color: #666; margin-left: 10px;">${expense.date}</small>
+                                </div>
+                                <div>
+                                    <span>$${expense.amount.toFixed(2)}</span>
+                                    <button class="delete-btn" onclick="deleteExpense('${categoryName}', ${index})" style="margin-left: 10px;">×</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(categoryDiv);
+            });
+        }
+
+        function saveData() {
+            const data = {
+                monthlyIncome: monthlyIncome,
+                categories: categories
+            };
+            localStorage.setItem('budgetData', JSON.stringify(data));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('budgetData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                monthlyIncome = data.monthlyIncome || 0;
+                categories = data.categories || {};
+                renderCategories();
+                updateDisplay();
+            }
+        }
+
+        // Load data when page loads
+        window.onload = function() {
+            loadData();
+        };
+
+        function exportData() {
+            const data = {
+                monthlyIncome: monthlyIncome,
+                categories: categories,
+                exportDate: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `budget-data-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (confirm('This will replace all current data. Continue?')) {
+                            monthlyIncome = data.monthlyIncome || 0;
+                            categories = data.categories || {};
+                            renderCategories();
+                            updateDisplay();
+                            saveData();
+                            alert('Data imported successfully!');
+                        }
+                    } catch (error) {
+                        alert('Invalid file format!');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Allow Enter key to submit forms
+        document.getElementById('income-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') setIncome();
+        });
+
+        document.getElementById('category-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addCategory();
+        });
+    </script>
+</body>
+</html>
