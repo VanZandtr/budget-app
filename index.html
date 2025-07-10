@@ -102,6 +102,15 @@
             background: #d32f2f;
         }
         
+        .edit-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        
         .categories {
             display: grid;
             gap: 15px;
@@ -178,7 +187,7 @@
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
-        <div class="income-section">
+        <div class="income-section" id="income-section">
             <h3>Monthly Income</h3>
             <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                 <input type="number" id="income-input" placeholder="Enter monthly income" step="0.01">
@@ -188,7 +197,7 @@
         
         <div class="budget-summary">
             <div class="summary-card income-card">
-                <h3>Monthly Income</h3>
+                <h3>Monthly Income <button id="edit-income-btn" class="edit-btn" onclick="showIncomeSection()" style="display: none;">✎</button></h3>
                 <div id="total-income">$0.00</div>
             </div>
             <div class="summary-card spent-card">
@@ -245,9 +254,15 @@
             if (amount && amount > 0) {
                 monthlyIncome = amount;
                 input.value = '';
+                document.getElementById('income-section').style.display = 'none';
+                document.getElementById('edit-income-btn').style.display = 'inline';
                 updateDisplay();
                 saveData();
             }
+        }
+        
+        function showIncomeSection() {
+            document.getElementById('income-section').style.display = 'block';
         }
 
         function addCategory() {
@@ -468,6 +483,12 @@
                         };
                     }
                 });
+                
+                // Hide income section if income is already set
+                if (monthlyIncome > 0) {
+                    document.getElementById('income-section').style.display = 'none';
+                    document.getElementById('edit-income-btn').style.display = 'inline';
+                }
                 
                 renderCategories();
                 renderRecurringExpenses();
