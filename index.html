@@ -140,6 +140,20 @@
             border-left: 4px solid #667eea;
         }
         
+        .budget-progress-container {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .budget-progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
         .category-header {
             display: flex;
             justify-content: space-between;
@@ -189,6 +203,8 @@
         .reset-section {
             background: #fff0f0;
             border-left: 4px solid #f44336;
+            padding: 15px;
+            font-size: 0.9em;
         }
         
         .danger-btn {
@@ -216,7 +232,7 @@
     </style>
 </head>
 <body>
-    <div class="version">v1.1.0</div>
+    <div class="version">v1.2.1</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
@@ -276,6 +292,7 @@
                 <button onclick="copyShareURL()">Copy URL</button>
             </div>
             <input type="text" id="share-url" class="share-url" placeholder="Your shareable URL will appear here" readonly>
+            <small id="url-char-count" style="color: #666; display: none;"></small>
             <small style="color: #666;">Share this URL to access your budget data between computers</small>
         </div>
         
@@ -423,15 +440,32 @@
                 const remaining = budget - spent;
                 const remainingColor = remaining < 0 ? '#f44336' : remaining < budget * 0.1 ? '#ff9800' : '#4CAF50';
                 
+                // Calculate percentage spent for progress bar
+                const percentSpent = budget > 0 ? (spent / budget) * 100 : 0;
+                let progressColor;
+                
+                if (percentSpent <= 50) {
+                    progressColor = '#4CAF50'; // Green
+                } else if (percentSpent <= 85) {
+                    progressColor = '#ff9800'; // Yellow/Orange
+                } else {
+                    progressColor = '#f44336'; // Red
+                }
+                
                 categoryDiv.innerHTML = `
                     <div class="category-header">
                         <span class="category-name">${categoryName}</span>
                         <div>
-                            <span style="color: #666;">Budget: $${budget.toFixed(2)} | Spent: $${spent.toFixed(2)} | </span>
-                            <span style="color: ${remainingColor}; font-weight: bold;">Remaining: $${remaining.toFixed(2)}</span>
-                            <button class="delete-btn" onclick="resetExpenses('${categoryName}')" style="margin-right: 5px; background: #ff9800;">Reset</button>
+                            <span style="color: #666;">Budget: $${budget.toFixed(2)} | Spent: $${spent.toFixed(2)}</span>
+                            <button class="delete-btn" onclick="resetExpenses('${categoryName}')" style="margin-left: 10px; margin-right: 5px; background: #ff9800;">Reset</button>
                             <button class="delete-btn" onclick="deleteCategory('${categoryName}')">Delete</button>
                         </div>
+                    </div>
+                    <div class="budget-progress-container">
+                        <div class="budget-progress-bar" style="width: ${Math.min(percentSpent, 100)}%; background-color: ${progressColor};"></div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
+                        <span style="color: ${remainingColor}; font-weight: bold;">Remaining: $${remaining.toFixed(2)}</span>
                     </div>
                     <div class="expense-input">
                         <input type="text" id="desc-${categoryName}" placeholder="Daily expense description">
@@ -559,6 +593,19 @@
             const encoded = btoa(JSON.stringify(data));
             const shareURL = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
             document.getElementById('share-url').value = shareURL;
+            
+            // Show character count warning
+            const charCount = shareURL.length;
+            const charCountElement = document.getElementById('url-char-count');
+            charCountElement.textContent = `${charCount}/2000 characters used`;
+            
+            if (charCount > 2000) {
+                charCountElement.style.color = '#f44336';
+                charCountElement.textContent += ' (may not work in all browsers)';
+            } else {
+                charCountElement.style.color = '#666';
+            }
+            charCountElement.style.display = 'block';
         }
         
         function copyShareURL() {
