@@ -73,7 +73,14 @@
         .remaining-card { background: #2196F3; }
         
         .category-section {
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+        }
+        
+        hr.section-divider {
+            border: 0;
+            height: 1px;
+            background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0));
+            margin: 30px 0;
         }
         
         .add-category {
@@ -209,7 +216,7 @@
     </style>
 </head>
 <body>
-    <div class="version">v1.0.0</div>
+    <div class="version">v1.1.0</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
@@ -236,6 +243,8 @@
             </div>
         </div>
         
+        <hr class="section-divider">
+        
         <div class="recurring-section">
             <h3>Recurring Expenses</h3>
             <p>Add expenses that automatically deduct from your income each month</p>
@@ -256,6 +265,8 @@
             </div>
             <div id="categories" class="categories"></div>
         </div>
+        
+        <hr class="section-divider">
         
         <div class="share-section">
             <h3>Share Your Budget</h3>
