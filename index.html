@@ -335,17 +335,12 @@
             return recurringExpenses.reduce((sum, expense) => sum + expense.amount, 0);
         }
 
-        function getAdjustedIncome() {
-            return monthlyIncome - getTotalRecurring();
-        }
-
         function updateDisplay() {
             const totalRecurring = getTotalRecurring();
-            const adjustedIncome = getAdjustedIncome();
             const totalSpent = getTotalSpent();
-            const remaining = adjustedIncome - totalSpent;
+            const remaining = monthlyIncome - totalRecurring - totalSpent;
             
-            document.getElementById('total-income').textContent = `$${adjustedIncome.toFixed(2)}`;
+            document.getElementById('total-income').textContent = `$${monthlyIncome.toFixed(2)}`;
             document.getElementById('total-spent').textContent = `$${totalSpent.toFixed(2)}`;
             document.getElementById('remaining-budget').textContent = `$${remaining.toFixed(2)}`;
             
