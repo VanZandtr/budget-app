@@ -60,6 +60,108 @@ Follow these steps to host your budget app on GitHub Pages:
 
 To run locally, simply open `index.html` in any modern web browser.
 
+## HTML Structure Demo
+
+Here's a simplified version of the HTML structure for reference:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Budget Tracker</title>
+    <style>
+        /* CSS styles here */
+        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 15px; padding: 30px; }
+        /* Additional styles... */
+    </style>
+</head>
+<body>
+    <div class="version">v1.2.1</div>
+    <div class="container">
+        <h1>Monthly Budget Tracker</h1>
+        
+        <!-- Income Section -->
+        <div class="income-section" id="income-section">
+            <h3>Monthly Income</h3>
+            <div>
+                <input type="number" id="income-input" placeholder="Enter monthly income">
+                <button onclick="setIncome()">Set Income</button>
+            </div>
+        </div>
+        
+        <!-- Budget Summary -->
+        <div class="budget-summary">
+            <div class="summary-card income-card">
+                <h3>Monthly Income <button id="edit-income-btn" onclick="showIncomeSection()">✎</button></h3>
+                <div id="total-income">$0.00</div>
+            </div>
+            <div class="summary-card spent-card">
+                <h3>Total Spent</h3>
+                <div id="total-spent">$0.00</div>
+            </div>
+            <div class="summary-card remaining-card">
+                <h3>Remaining</h3>
+                <div id="remaining-budget">$0.00</div>
+            </div>
+        </div>
+        
+        <!-- Recurring Expenses -->
+        <div class="recurring-section">
+            <h3>Recurring Expenses</h3>
+            <div>
+                <input type="text" id="recurring-desc-input" placeholder="Description">
+                <input type="number" id="recurring-amount-input" placeholder="Monthly amount">
+                <button onclick="addRecurringExpense()">Add Recurring Expense</button>
+            </div>
+            <div id="recurring-expenses" class="expenses"></div>
+        </div>
+        
+        <!-- Budget Categories -->
+        <div class="category-section">
+            <h3>Budget Categories</h3>
+            <div class="add-category">
+                <input type="text" id="category-input" placeholder="Category name">
+                <input type="number" id="budget-input" placeholder="Monthly budget">
+                <button onclick="addCategory()">Add Category</button>
+            </div>
+            <div id="categories" class="categories"></div>
+        </div>
+        
+        <!-- Share Section -->
+        <div class="share-section">
+            <h3>Share Your Budget</h3>
+            <button onclick="generateShareURL()">Generate Share URL</button>
+            <input type="text" id="share-url" readonly>
+            <small id="url-char-count"></small>
+        </div>
+        
+        <!-- Reset Section -->
+        <div class="reset-section">
+            <h3>Reset Application</h3>
+            <button class="danger-btn" onclick="resetApplication()">Reset Application</button>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript code here
+        let monthlyIncome = 0;
+        let categories = {};
+        let recurringExpenses = [];
+        
+        // Core functions: setIncome, addCategory, addRecurringExpense, etc.
+        
+        // Load data on page load
+        window.onload = function() {
+            loadData();
+        };
+    </script>
+</body>
+</html>
+```
+
 ## Browser Compatibility
 
 Works in all modern browsers including Chrome, Firefox, Safari, and Edge.
