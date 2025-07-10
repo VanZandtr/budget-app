@@ -291,6 +291,15 @@
                 saveData();
             }
         }
+        
+        function resetExpenses(categoryName) {
+            if (confirm(`Reset all expenses in "${categoryName}"?`)) {
+                categories[categoryName].expenses = [];
+                renderCategories();
+                updateDisplay();
+                saveData();
+            }
+        }
 
         function addExpense(categoryName) {
             const descInput = document.getElementById(`desc-${categoryName}`);
@@ -374,6 +383,7 @@
                         <div>
                             <span style="color: #666;">Budget: $${budget.toFixed(2)} | Spent: $${spent.toFixed(2)} | </span>
                             <span style="color: ${remainingColor}; font-weight: bold;">Remaining: $${remaining.toFixed(2)}</span>
+                            <button class="delete-btn" onclick="resetExpenses('${categoryName}')" style="margin-right: 5px; background: #ff9800;">Reset</button>
                             <button class="delete-btn" onclick="deleteCategory('${categoryName}')">Delete</button>
                         </div>
                     </div>
