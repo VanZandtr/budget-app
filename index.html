@@ -16,6 +16,16 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            position: relative;
+        }
+        
+        .version {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            font-weight: bold;
         }
         
         .container {
@@ -161,12 +171,27 @@
             border-radius: 5px;
         }
         
-        .share-section {
+        .share-section, .reset-section {
             margin-top: 30px;
             padding: 20px;
             background: #f0f8ff;
             border-radius: 10px;
             border-left: 4px solid #2196F3;
+        }
+        
+        .reset-section {
+            background: #fff0f0;
+            border-left: 4px solid #f44336;
+        }
+        
+        .danger-btn {
+            background: #f44336;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .danger-btn:hover {
+            background: #d32f2f;
         }
         
         .share-url {
@@ -184,6 +209,7 @@
     </style>
 </head>
 <body>
+    <div class="version">v1.0.0</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
@@ -240,6 +266,15 @@
             </div>
             <input type="text" id="share-url" class="share-url" placeholder="Your shareable URL will appear here" readonly>
             <small style="color: #666;">Share this URL to access your budget data between computers</small>
+        </div>
+        
+        <div class="reset-section">
+            <h3>Reset Application</h3>
+            <p>Having issues with data not updating? Reset the application to clear all stored data:</p>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="danger-btn" onclick="resetApplication()">Reset Application</button>
+            </div>
+            <small style="color: #666;"><strong>Warning:</strong> This will delete all your budget data including income, categories, and expenses!</small>
         </div>
     </div>
 
@@ -561,6 +596,16 @@
         document.getElementById('recurring-amount-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addRecurringExpense();
         });
+        
+        function resetApplication() {
+            if (confirm('WARNING: This will delete ALL your budget data! Are you sure you want to reset the application?')) {
+                if (confirm('FINAL WARNING: All data will be permanently lost. Continue?')) {
+                    localStorage.removeItem('budgetData');
+                    alert('Application reset successful. The page will now reload.');
+                    window.location.reload();
+                }
+            }
+        }
     </script>
 </body>
 </html>
