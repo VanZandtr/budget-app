@@ -4,21 +4,26 @@ A simple, responsive web app to track your monthly budget with custom categories
 
 ## Features
 
-- Set monthly income
-- Create custom budget categories
-- Add expenses with descriptions and amounts
-- Real-time budget calculations
+- Set monthly income with easy edit option
+- Create custom budget categories with visual progress bars
+- Add recurring expenses that auto-deduct from your budget
+- Track one-time expenses with descriptions and amounts
+- Real-time budget calculations and visual feedback
+- Reset individual categories or the entire application
 - Data persistence using browser localStorage
+- Share your budget via URL with others
 - Responsive design for mobile and desktop
 - Visual indicators for budget status
 
 ## How to Use
 
-1. **Set Your Income**: Enter your monthly income and click "Set Income"
-2. **Add Categories**: Create budget categories like "Groceries", "Rent", "Entertainment", etc.
-3. **Track Expenses**: Add expenses to each category with descriptions and amounts
-4. **Monitor Budget**: Watch your remaining budget update in real-time
-5. **Manage Data**: Delete individual expenses or entire categories as needed
+1. **Set Your Income**: Enter your monthly income and click "Set Income" (click the pencil icon to edit later)
+2. **Add Recurring Expenses**: Add fixed monthly expenses like rent or subscriptions that automatically deduct from your budget
+3. **Add Categories**: Create budget categories like "Groceries", "Entertainment", etc. with monthly budget amounts
+4. **Track Expenses**: Add expenses to each category with descriptions and amounts
+5. **Monitor Budget**: Watch your remaining budget update in real-time with visual progress bars
+6. **Manage Data**: Reset category expenses, delete categories, or reset the entire application
+7. **Share Your Budget**: Generate a shareable URL to access your budget on other devices
 
 ## Hosting on GitHub Pages
 
@@ -58,3 +63,10 @@ To run locally, simply open `index.html` in any modern web browser.
 ## Browser Compatibility
 
 Works in all modern browsers including Chrome, Firefox, Safari, and Edge.
+
+## Version History
+
+- **v1.2.1**: Added URL character count warning
+- **v1.2.0**: Added budget progress bars and UI improvements
+- **v1.1.0**: Added recurring expenses and application reset
+- **v1.0.0**: Initial release with basic budget tracking
