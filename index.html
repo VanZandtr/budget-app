@@ -33,11 +33,15 @@
             margin-bottom: 30px;
         }
         
-        .income-section {
+        .income-section, .recurring-section {
             background: #e8f5e8;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 30px;
+        }
+        
+        .recurring-section {
+            background: #f0e8f5;
         }
         
         .budget-summary {
@@ -197,6 +201,17 @@
             </div>
         </div>
         
+        <div class="recurring-section">
+            <h3>Recurring Expenses</h3>
+            <p>Add expenses that automatically deduct from your income each month</p>
+            <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                <input type="text" id="recurring-desc-input" placeholder="Description (e.g., Rent, Netflix)">
+                <input type="number" id="recurring-amount-input" placeholder="Monthly amount" step="0.01">
+                <button onclick="addRecurringExpense()">Add Recurring Expense</button>
+            </div>
+            <div id="recurring-expenses" class="expenses" style="margin-top: 15px;"></div>
+        </div>
+        
         <div class="category-section">
             <h3>Budget Categories</h3>
             <div class="add-category">
@@ -222,6 +237,7 @@
     <script>
         let monthlyIncome = 0;
         let categories = {};
+        let recurringExpenses = [];
 
         function setIncome() {
             const input = document.getElementById('income-input');
@@ -300,11 +316,21 @@
             }, 0);
         }
 
+        function getTotalRecurring() {
+            return recurringExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+        }
+
+        function getAdjustedIncome() {
+            return monthlyIncome - getTotalRecurring();
+        }
+
         function updateDisplay() {
+            const totalRecurring = getTotalRecurring();
+            const adjustedIncome = getAdjustedIncome();
             const totalSpent = getTotalSpent();
-            const remaining = monthlyIncome - totalSpent;
+            const remaining = adjustedIncome - totalSpent;
             
-            document.getElementById('total-income').textContent = `$${monthlyIncome.toFixed(2)}`;
+            document.getElementById('total-income').textContent = `$${adjustedIncome.toFixed(2)}`;
             document.getElementById('total-spent').textContent = `$${totalSpent.toFixed(2)}`;
             document.getElementById('remaining-budget').textContent = `$${remaining.toFixed(2)}`;
             
@@ -366,10 +392,61 @@
             });
         }
 
+        function addRecurringExpense() {
+            const descInput = document.getElementById('recurring-desc-input');
+            const amountInput = document.getElementById('recurring-amount-input');
+            
+            const description = descInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            
+            if (description && amount && amount > 0) {
+                recurringExpenses.push({
+                    description: description,
+                    amount: amount
+                });
+                
+                descInput.value = '';
+                amountInput.value = '';
+                renderRecurringExpenses();
+                updateDisplay();
+                saveData();
+            }
+        }
+
+        function deleteRecurringExpense(index) {
+            recurringExpenses.splice(index, 1);
+            renderRecurringExpenses();
+            updateDisplay();
+            saveData();
+        }
+
+        function renderRecurringExpenses() {
+            const container = document.getElementById('recurring-expenses');
+            container.innerHTML = '';
+            
+            recurringExpenses.forEach((expense, index) => {
+                const expenseDiv = document.createElement('div');
+                expenseDiv.className = 'expense-item';
+                
+                expenseDiv.innerHTML = `
+                    <div>
+                        <strong>${expense.description}</strong>
+                    </div>
+                    <div>
+                        <span>$${expense.amount.toFixed(2)}</span>
+                        <button class="delete-btn" onclick="deleteRecurringExpense(${index})" style="margin-left: 10px;">×</button>
+                    </div>
+                `;
+                
+                container.appendChild(expenseDiv);
+            });
+        }
+
         function saveData() {
             const data = {
                 monthlyIncome: monthlyIncome,
-                categories: categories
+                categories: categories,
+                recurringExpenses: recurringExpenses
             };
             localStorage.setItem('budgetData', JSON.stringify(data));
         }
@@ -380,6 +457,7 @@
                 const data = JSON.parse(saved);
                 monthlyIncome = data.monthlyIncome || 0;
                 categories = data.categories || {};
+                recurringExpenses = data.recurringExpenses || [];
                 
                 // Convert old format to new format
                 Object.keys(categories).forEach(name => {
@@ -392,6 +470,7 @@
                 });
                 
                 renderCategories();
+                renderRecurringExpenses();
                 updateDisplay();
             }
         }
@@ -404,7 +483,7 @@
 
         // URL sharing functions
         function generateShareURL() {
-            const data = { monthlyIncome, categories };
+            const data = { monthlyIncome, categories, recurringExpenses };
             const encoded = btoa(JSON.stringify(data));
             const shareURL = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
             document.getElementById('share-url').value = shareURL;
@@ -429,7 +508,9 @@
                     const decoded = JSON.parse(atob(data));
                     monthlyIncome = decoded.monthlyIncome || 0;
                     categories = decoded.categories || {};
+                    recurringExpenses = decoded.recurringExpenses || [];
                     renderCategories();
+                    renderRecurringExpenses();
                     updateDisplay();
                     saveData();
                 } catch (error) {
@@ -445,6 +526,14 @@
 
         document.getElementById('category-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addCategory();
+        });
+
+        document.getElementById('recurring-desc-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addRecurringExpense();
+        });
+        
+        document.getElementById('recurring-amount-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addRecurringExpense();
         });
     </script>
 </body>
