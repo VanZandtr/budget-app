@@ -232,7 +232,7 @@
     </style>
 </head>
 <body>
-    <div class="version">v1.2.1</div>
+    <div class="version">v1.3.0</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
@@ -588,9 +588,35 @@
         };
 
         // URL sharing functions
+        // Simple compression function to reduce data size
+        function compressData(data) {
+            // Convert category names to shorter keys
+            const compressed = {
+                i: data.monthlyIncome,
+                r: data.recurringExpenses,
+                c: {}
+            };
+            
+            // Compress categories
+            Object.keys(data.categories).forEach((name, index) => {
+                const category = data.categories[name];
+                compressed.c[name] = {
+                    b: category.budget,
+                    e: category.expenses.map(exp => ({
+                        d: exp.description,
+                        a: exp.amount,
+                        t: exp.date
+                    }))
+                };
+            });
+            
+            return compressed;
+        }
+        
         function generateShareURL() {
             const data = { monthlyIncome, categories, recurringExpenses };
-            const encoded = btoa(JSON.stringify(data));
+            const compressed = compressData(data);
+            const encoded = btoa(JSON.stringify(compressed));
             const shareURL = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
             document.getElementById('share-url').value = shareURL;
             
@@ -625,15 +651,41 @@
             if (data) {
                 try {
                     const decoded = JSON.parse(atob(data));
-                    monthlyIncome = decoded.monthlyIncome || 0;
-                    categories = decoded.categories || {};
-                    recurringExpenses = decoded.recurringExpenses || [];
+                    
+                    // Handle compressed data format
+                    if (decoded.i !== undefined) {
+                        // Compressed format
+                        monthlyIncome = decoded.i || 0;
+                        recurringExpenses = decoded.r || [];
+                        
+                        // Decompress categories
+                        categories = {};
+                        if (decoded.c) {
+                            Object.keys(decoded.c).forEach(name => {
+                                const cat = decoded.c[name];
+                                categories[name] = {
+                                    budget: cat.b || 0,
+                                    expenses: (cat.e || []).map(e => ({
+                                        description: e.d,
+                                        amount: e.a,
+                                        date: e.t
+                                    }))
+                                };
+                            });
+                        }
+                    } else {
+                        // Original format
+                        monthlyIncome = decoded.monthlyIncome || 0;
+                        categories = decoded.categories || {};
+                        recurringExpenses = decoded.recurringExpenses || [];
+                    }
+                    
                     renderCategories();
                     renderRecurringExpenses();
                     updateDisplay();
                     saveData();
                 } catch (error) {
-                    console.error('Invalid URL data');
+                    console.error('Invalid URL data', error);
                 }
             }
         }
