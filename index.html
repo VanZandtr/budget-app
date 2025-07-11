@@ -232,7 +232,7 @@
     </style>
 </head>
 <body>
-    <div class="version">v1.3.0</div>
+    <div class="version">v1.4.0</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
@@ -342,6 +342,7 @@
                 nameInput.value = '';
                 budgetInput.value = '';
                 renderCategories();
+                updateDisplay(); // Update display to reflect the new budget allocation
                 saveData();
             }
         }
@@ -397,9 +398,18 @@
             return categories[categoryName].expenses.reduce((sum, expense) => sum + expense.amount, 0);
         }
 
-        function getTotalSpent() {
+        function getTotalBudgeted() {
             return Object.keys(categories).reduce((total, categoryName) => {
-                return total + getCategoryTotal(categoryName);
+                return total + categories[categoryName].budget;
+            }, 0);
+        }
+        
+        function getTotalOverspent() {
+            return Object.keys(categories).reduce((total, categoryName) => {
+                const spent = getCategoryTotal(categoryName);
+                const budget = categories[categoryName].budget;
+                // Only count overspending against the remaining budget
+                return total + Math.max(0, spent - budget);
             }, 0);
         }
 
@@ -409,11 +419,20 @@
 
         function updateDisplay() {
             const totalRecurring = getTotalRecurring();
-            const totalSpent = getTotalSpent();
-            const remaining = monthlyIncome - totalRecurring - totalSpent;
+            const totalBudgeted = getTotalBudgeted();
+            const totalOverspent = getTotalOverspent();
+            
+            // Calculate remaining by subtracting recurring expenses and budgeted amounts
+            // Then subtract any overspending from categories
+            const remaining = monthlyIncome - totalRecurring - totalBudgeted - totalOverspent;
+            
+            // For display purposes, show the total spent in categories
+            const totalCategorySpent = Object.keys(categories).reduce((total, categoryName) => {
+                return total + getCategoryTotal(categoryName);
+            }, 0);
             
             document.getElementById('total-income').textContent = `$${monthlyIncome.toFixed(2)}`;
-            document.getElementById('total-spent').textContent = `$${totalSpent.toFixed(2)}`;
+            document.getElementById('total-spent').textContent = `$${totalCategorySpent.toFixed(2)}`;
             document.getElementById('remaining-budget').textContent = `$${remaining.toFixed(2)}`;
             
             // Change color based on remaining budget
