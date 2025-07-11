@@ -8,10 +8,12 @@ A simple, responsive web app to track your monthly budget with custom categories
 - Create custom budget categories with visual progress bars
 - Add recurring expenses that auto-deduct from your budget
 - Track one-time expenses with descriptions and amounts
+- Smart budget calculation - category budgets immediately deduct from remaining budget
 - Real-time budget calculations and visual feedback
 - Reset individual categories or the entire application
 - Data persistence using browser localStorage
-- Share your budget via URL with others
+- Share your budget via URL with data compression
+- URL character count warning to ensure compatibility
 - Responsive design for mobile and desktop
 - Visual indicators for budget status
 
@@ -79,7 +81,7 @@ Here's a simplified version of the HTML structure for reference:
     </style>
 </head>
 <body>
-    <div class="version">v1.2.1</div>
+    <div class="version">v1.4.0</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
@@ -168,6 +170,8 @@ Works in all modern browsers including Chrome, Firefox, Safari, and Edge.
 
 ## Version History
 
+- **v1.4.0**: Improved budget calculation - category budgets immediately deduct from remaining budget
+- **v1.3.0**: Added data compression for URL sharing to reduce URL length
 - **v1.2.1**: Added URL character count warning
 - **v1.2.0**: Added budget progress bars and UI improvements
 - **v1.1.0**: Added recurring expenses and application reset
