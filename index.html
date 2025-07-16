@@ -245,7 +245,7 @@
     </style>
 </head>
 <body>
-    <div class="version">v2.0.0</div>
+    <div class="version">v2.0.1</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
@@ -283,6 +283,7 @@
                 <div style="color: #666; margin-bottom: 20px; font-size: 14px;">
                     Make sure you're connected to the shared budget.
                 </div>
+                <div id="connection-status" style="margin: 10px 0; font-weight: bold;"></div>
                 
                 <div style="display: flex; align-items: center;">
                     <button onclick="pullFromDatabase()" style="background: #9C27B0; flex-grow: 1;">📥 Get Latest Budget</button>
@@ -290,9 +291,8 @@
                 <div style="color: #666; margin-bottom: 10px; font-size: 14px;">
                     Always get the latest budget before making changes.
                 </div>
+                <div id="pull-status" style="margin: 10px 0; font-weight: bold;"></div>
             </div>
-            <div id="connection-status" style="margin-top: 10px; font-weight: bold;"></div>
-            <div id="sync-status" style="margin-top: 5px; font-weight: bold;"></div>
         </div>
         
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-top: 30px; background: #f0f8ff;">
@@ -331,6 +331,7 @@
                 <div style="color: #666; margin-bottom: 10px; font-size: 14px;">
                     After making changes, save them so others can see them.
                 </div>
+                <div id="push-status" style="margin: 10px 0; font-weight: bold;"></div>
             </div>
         </div>
         
@@ -727,7 +728,7 @@
             };
             
             const dataSize = estimateDataSize(data);
-            const statusElement = document.getElementById('sync-status');
+            const statusElement = document.getElementById('push-status');
             statusElement.textContent = 'Pushing to database...';
             statusElement.style.color = '#2196F3';
             
@@ -747,7 +748,7 @@
         function pullFromDatabase() {
             const budgetId = 'shared-budget'; // Fixed ID for simplicity
             
-            const statusElement = document.getElementById('sync-status');
+            const statusElement = document.getElementById('pull-status');
             statusElement.textContent = 'Pulling from database...';
             statusElement.style.color = '#2196F3';
             
