@@ -10,22 +10,28 @@ A simple, responsive web app to track your monthly budget with custom categories
 - Track one-time expenses with descriptions and amounts
 - Smart budget calculation - category budgets immediately deduct from remaining budget
 - Real-time budget calculations and visual feedback
-- Reset individual categories or the entire application
-- Data persistence using browser localStorage
-- Share your budget via URL with data compression
-- URL character count warning to ensure compatibility
+- Reset individual categories or clear the entire budget
+- Firebase database integration for sharing between devices
+- Simple 3-step workflow for shared budgets
+- Data persistence using both cloud and local storage
 - Responsive design for mobile and desktop
 - Visual indicators for budget status
 
 ## How to Use
 
+### Basic Budget Management
 1. **Set Your Income**: Enter your monthly income and click "Set Income" (click the pencil icon to edit later)
 2. **Add Recurring Expenses**: Add fixed monthly expenses like rent or subscriptions that automatically deduct from your budget
 3. **Add Categories**: Create budget categories like "Groceries", "Entertainment", etc. with monthly budget amounts
 4. **Track Expenses**: Add expenses to each category with descriptions and amounts
 5. **Monitor Budget**: Watch your remaining budget update in real-time with visual progress bars
-6. **Manage Data**: Reset category expenses, delete categories, or reset the entire application
-7. **Share Your Budget**: Generate a shareable URL to access your budget on other devices
+
+### Sharing Between Devices (or with Family)
+1. **Step 1: Get Latest Budget**: First check connection, then pull the latest budget from the database
+2. **Step 2: Update Budget**: Make your changes to recurring expenses and categories
+3. **Step 3: Save Your Changes**: Push your updated budget back to the database
+
+Both users should follow these three steps to avoid conflicts. Always pull before making changes!
 
 ## Hosting on GitHub Pages
 
@@ -62,107 +68,41 @@ Follow these steps to host your budget app on GitHub Pages:
 
 To run locally, simply open `index.html` in any modern web browser.
 
-## HTML Structure Demo
+## Firebase Setup
 
-Here's a simplified version of the HTML structure for reference:
+### Step 1: Create a Firebase Project
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Click "Add project"
+3. Enter a project name (e.g., "Budget Tracker")
+4. Follow the setup wizard
 
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monthly Budget Tracker</title>
-    <style>
-        /* CSS styles here */
-        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 15px; padding: 30px; }
-        /* Additional styles... */
-    </style>
-</head>
-<body>
-    <div class="version">v1.4.0</div>
-    <div class="container">
-        <h1>Monthly Budget Tracker</h1>
-        
-        <!-- Income Section -->
-        <div class="income-section" id="income-section">
-            <h3>Monthly Income</h3>
-            <div>
-                <input type="number" id="income-input" placeholder="Enter monthly income">
-                <button onclick="setIncome()">Set Income</button>
-            </div>
-        </div>
-        
-        <!-- Budget Summary -->
-        <div class="budget-summary">
-            <div class="summary-card income-card">
-                <h3>Monthly Income <button id="edit-income-btn" onclick="showIncomeSection()">✎</button></h3>
-                <div id="total-income">$0.00</div>
-            </div>
-            <div class="summary-card spent-card">
-                <h3>Total Spent</h3>
-                <div id="total-spent">$0.00</div>
-            </div>
-            <div class="summary-card remaining-card">
-                <h3>Remaining</h3>
-                <div id="remaining-budget">$0.00</div>
-            </div>
-        </div>
-        
-        <!-- Recurring Expenses -->
-        <div class="recurring-section">
-            <h3>Recurring Expenses</h3>
-            <div>
-                <input type="text" id="recurring-desc-input" placeholder="Description">
-                <input type="number" id="recurring-amount-input" placeholder="Monthly amount">
-                <button onclick="addRecurringExpense()">Add Recurring Expense</button>
-            </div>
-            <div id="recurring-expenses" class="expenses"></div>
-        </div>
-        
-        <!-- Budget Categories -->
-        <div class="category-section">
-            <h3>Budget Categories</h3>
-            <div class="add-category">
-                <input type="text" id="category-input" placeholder="Category name">
-                <input type="number" id="budget-input" placeholder="Monthly budget">
-                <button onclick="addCategory()">Add Category</button>
-            </div>
-            <div id="categories" class="categories"></div>
-        </div>
-        
-        <!-- Share Section -->
-        <div class="share-section">
-            <h3>Share Your Budget</h3>
-            <button onclick="generateShareURL()">Generate Share URL</button>
-            <input type="text" id="share-url" readonly>
-            <small id="url-char-count"></small>
-        </div>
-        
-        <!-- Reset Section -->
-        <div class="reset-section">
-            <h3>Reset Application</h3>
-            <button class="danger-btn" onclick="resetApplication()">Reset Application</button>
-        </div>
-    </div>
+### Step 2: Set Up Firestore Database
+1. In the left sidebar, click "Firestore Database"
+2. Click "Create database"
+3. Choose "Start in production mode"
+4. Select a location closest to you
+5. Click "Enable"
 
-    <script>
-        // JavaScript code here
-        let monthlyIncome = 0;
-        let categories = {};
-        let recurringExpenses = [];
-        
-        // Core functions: setIncome, addCategory, addRecurringExpense, etc.
-        
-        // Load data on page load
-        window.onload = function() {
-            loadData();
-        };
-    </script>
-</body>
-</html>
+### Step 3: Set Security Rules
+1. Go to the "Rules" tab in Firestore
+2. Use these rules for simple access:
 ```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /budgets/{budgetId} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
+### Step 4: Get Your Firebase Config
+1. Click the gear icon (⚙️) and select "Project settings"
+2. Scroll down to "Your apps" and click the web icon (</>) 
+3. Register your app with a nickname
+4. Copy the Firebase configuration object
+5. Replace the config in your index.html file
 
 ## Browser Compatibility
 
@@ -170,6 +110,12 @@ Works in all modern browsers including Chrome, Firefox, Safari, and Edge.
 
 ## Version History
 
+- **v2.0.0**: Major UI redesign with 3-step workflow for shared budgets
+- **v1.9.0**: Reorganized workflow into clear steps
+- **v1.8.0**: Simplified sync interface
+- **v1.7.0**: Removed URL sharing in favor of Firebase database
+- **v1.6.0**: Added Firebase database integration
+- **v1.5.0**: Added ownership verification for shared budgets
 - **v1.4.0**: Improved budget calculation - category budgets immediately deduct from remaining budget
 - **v1.3.0**: Added data compression for URL sharing to reduce URL length
 - **v1.2.1**: Added URL character count warning

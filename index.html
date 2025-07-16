@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Monthly Budget Tracker</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -192,12 +200,17 @@
             border-radius: 5px;
         }
         
-        .share-section, .reset-section {
+        .share-section, .reset-section, .sync-section {
             margin-top: 30px;
             padding: 20px;
             background: #f0f8ff;
             border-radius: 10px;
             border-left: 4px solid #2196F3;
+        }
+        
+        .sync-section {
+            background: #e8f5e9;
+            border-left: 4px solid #4CAF50;
         }
         
         .reset-section {
@@ -232,7 +245,7 @@
     </style>
 </head>
 <body>
-    <div class="version">v1.4.0</div>
+    <div class="version">v2.0.0</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
@@ -261,55 +274,97 @@
         
         <hr class="section-divider">
         
-        <div class="recurring-section">
-            <h3>Recurring Expenses</h3>
-            <p>Add expenses that automatically deduct from your income each month</p>
-            <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
-                <input type="text" id="recurring-desc-input" placeholder="Description (e.g., Rent, Netflix)">
-                <input type="number" id="recurring-amount-input" placeholder="Monthly amount" step="0.01">
-                <button onclick="addRecurringExpense()">Add Recurring Expense</button>
+        <div class="sync-section">
+            <h3>Step 1: Get Latest Budget</h3>
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-top: 15px; background: #f9f9f9;">
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    <button onclick="checkConnection()" style="background: #2196F3; flex-grow: 1;">🔌 Check Connection</button>
+                </div>
+                <div style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    Make sure you're connected to the shared budget.
+                </div>
+                
+                <div style="display: flex; align-items: center;">
+                    <button onclick="pullFromDatabase()" style="background: #9C27B0; flex-grow: 1;">📥 Get Latest Budget</button>
+                </div>
+                <div style="color: #666; margin-bottom: 10px; font-size: 14px;">
+                    Always get the latest budget before making changes.
+                </div>
             </div>
-            <div id="recurring-expenses" class="expenses" style="margin-top: 15px;"></div>
+            <div id="connection-status" style="margin-top: 10px; font-weight: bold;"></div>
+            <div id="sync-status" style="margin-top: 5px; font-weight: bold;"></div>
         </div>
         
-        <div class="category-section">
-            <h3>Budget Categories</h3>
-            <div class="add-category">
-                <input type="text" id="category-input" placeholder="Category name (e.g., Food, Rent)">
-                <input type="number" id="budget-input" placeholder="Monthly budget" step="0.01">
-                <button onclick="addCategory()">Add Category</button>
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-top: 30px; background: #f0f8ff;">
+            <h3>Step 2: Update Budget</h3>
+            
+            <div class="recurring-section" style="background: transparent; padding: 0; margin-top: 20px;">
+                <h4>Recurring Expenses</h4>
+                <p>Add expenses that automatically deduct from your income each month</p>
+                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                    <input type="text" id="recurring-desc-input" placeholder="Description (e.g., Rent, Netflix)">
+                    <input type="number" id="recurring-amount-input" placeholder="Monthly amount" step="0.01">
+                    <button onclick="addRecurringExpense()">Add Recurring Expense</button>
+                </div>
+                <div id="recurring-expenses" class="expenses" style="margin-top: 15px;"></div>
             </div>
-            <div id="categories" class="categories"></div>
+            
+            <div class="category-section" style="margin-top: 30px; margin-bottom: 0;">
+                <h4>Budget Categories</h4>
+                <div class="add-category">
+                    <input type="text" id="category-input" placeholder="Category name (e.g., Food, Rent)">
+                    <input type="number" id="budget-input" placeholder="Monthly budget" step="0.01">
+                    <button onclick="addCategory()">Add Category</button>
+                </div>
+                <div id="categories" class="categories"></div>
+            </div>
         </div>
         
         <hr class="section-divider">
         
-        <div class="share-section">
-            <h3>Share Your Budget</h3>
-            <p>Generate a shareable URL to access your budget data on any device:</p>
-            <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
-                <button onclick="generateShareURL()">Generate Share URL</button>
-                <button onclick="copyShareURL()">Copy URL</button>
+        <div class="sync-section" style="background: #e8f5e9;">
+            <h3>Step 3: Save Your Changes</h3>
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-top: 15px; background: #f9f9f9;">
+                <div style="display: flex; align-items: center;">
+                    <button onclick="pushToDatabase()" style="background: #4CAF50; flex-grow: 1;">📤 Save To Shared Budget</button>
+                </div>
+                <div style="color: #666; margin-bottom: 10px; font-size: 14px;">
+                    After making changes, save them so others can see them.
+                </div>
             </div>
-            <input type="text" id="share-url" class="share-url" placeholder="Your shareable URL will appear here" readonly>
-            <small id="url-char-count" style="color: #666; display: none;"></small>
-            <small style="color: #666;">Share this URL to access your budget data between computers</small>
         </div>
         
-        <div class="reset-section">
-            <h3>Reset Application</h3>
-            <p>Having issues with data not updating? Reset the application to clear all stored data:</p>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="danger-btn" onclick="resetApplication()">Reset Application</button>
-            </div>
-            <small style="color: #666;"><strong>Warning:</strong> This will delete all your budget data including income, categories, and expenses!</small>
+
+        
+        <div style="margin-top: 30px; text-align: right;">
+            <button class="danger-btn" onclick="resetApplication()" style="font-size: 14px; padding: 8px 12px;">Clear Budget</button>
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD0p-C0M4faMWthhu7_v-g-8A4z0onrbLw",
+            authDomain: "budget-tracker-app-8798f.firebaseapp.com",
+            projectId: "budget-tracker-app-8798f",
+            storageBucket: "budget-tracker-app-8798f.firebasestorage.app",
+            messagingSenderId: "718521107835",
+            appId: "1:718521107835:web:1b3df2550e333b20b129de"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
         let monthlyIncome = 0;
         let categories = {};
         let recurringExpenses = [];
+        let currentBudgetId = null;
+        let syncEnabled = false;
 
         function setIncome() {
             const input = document.getElementById('income-input');
@@ -568,6 +623,36 @@
                 recurringExpenses: recurringExpenses
             };
             localStorage.setItem('budgetData', JSON.stringify(data));
+            
+            // If sync is enabled, save to Firebase
+            if (syncEnabled && currentBudgetId) {
+                saveBudgetToFirebase();
+            }
+        }
+        
+        function saveBudgetToFirebase() {
+            if (!currentBudgetId) return;
+            
+            const data = {
+                monthlyIncome: monthlyIncome,
+                categories: categories,
+                recurringExpenses: recurringExpenses,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            db.collection('budgets').doc(currentBudgetId).set(data)
+                .then(() => {
+                    document.getElementById('sync-status').textContent = 'Budget synced successfully!';
+                    document.getElementById('sync-status').style.color = '#4CAF50';
+                    setTimeout(() => {
+                        document.getElementById('sync-status').textContent = '';
+                    }, 3000);
+                })
+                .catch(error => {
+                    console.error('Error saving budget to Firebase:', error);
+                    document.getElementById('sync-status').textContent = 'Sync failed: ' + error.message;
+                    document.getElementById('sync-status').style.color = '#f44336';
+                });
         }
 
         function loadData() {
@@ -600,114 +685,363 @@
             }
         }
 
-        // Load data when page loads
-        window.onload = function() {
-            loadFromURL();
-            loadData();
-        };
-
-        // URL sharing functions
-        // Simple compression function to reduce data size
-        function compressData(data) {
-            // Convert category names to shorter keys
-            const compressed = {
-                i: data.monthlyIncome,
-                r: data.recurringExpenses,
-                c: {}
+        function checkConnection() {
+            const statusElement = document.getElementById('connection-status');
+            statusElement.textContent = 'Checking connection...';
+            statusElement.style.color = '#2196F3';
+            
+            db.collection('budgets').limit(1).get()
+                .then(() => {
+                    statusElement.textContent = '✓ Connected to Firebase: ' + firebaseConfig.projectId;
+                    statusElement.style.color = '#4CAF50';
+                })
+                .catch(error => {
+                    statusElement.textContent = '✗ Connection failed: ' + error.message;
+                    statusElement.style.color = '#f44336';
+                });
+        }
+        
+        function estimateDataSize(data) {
+            // Convert data to JSON string and measure its size in bytes
+            const jsonString = JSON.stringify(data);
+            const bytes = new TextEncoder().encode(jsonString).length;
+            
+            // Convert to KB or MB for display
+            if (bytes < 1024) {
+                return bytes + ' bytes';
+            } else if (bytes < 1024 * 1024) {
+                return (bytes / 1024).toFixed(2) + ' KB';
+            } else {
+                return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+            }
+        }
+        
+        function pushToDatabase() {
+            const budgetId = 'shared-budget'; // Fixed ID for simplicity
+            
+            const data = {
+                monthlyIncome: monthlyIncome,
+                categories: categories,
+                recurringExpenses: recurringExpenses,
+                lastUpdated: new Date().toISOString()
             };
             
-            // Compress categories
-            Object.keys(data.categories).forEach((name, index) => {
-                const category = data.categories[name];
-                compressed.c[name] = {
-                    b: category.budget,
-                    e: category.expenses.map(exp => ({
-                        d: exp.description,
-                        a: exp.amount,
-                        t: exp.date
-                    }))
-                };
-            });
+            const dataSize = estimateDataSize(data);
+            const statusElement = document.getElementById('sync-status');
+            statusElement.textContent = 'Pushing to database...';
+            statusElement.style.color = '#2196F3';
             
-            return compressed;
+            db.collection('budgets').doc(budgetId).set(data)
+                .then(() => {
+                    statusElement.textContent = `Budget pushed to database successfully! (${dataSize} of 1GB used)`;
+                    statusElement.style.color = '#4CAF50';
+                    currentBudgetId = budgetId;
+                    syncEnabled = true;
+                })
+                .catch(error => {
+                    statusElement.textContent = 'Push failed: ' + error.message;
+                    statusElement.style.color = '#f44336';
+                });
         }
         
-        function generateShareURL() {
-            const data = { monthlyIncome, categories, recurringExpenses };
-            const compressed = compressData(data);
-            const encoded = btoa(JSON.stringify(compressed));
-            const shareURL = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
-            document.getElementById('share-url').value = shareURL;
+        function pullFromDatabase() {
+            const budgetId = 'shared-budget'; // Fixed ID for simplicity
             
-            // Show character count warning
-            const charCount = shareURL.length;
-            const charCountElement = document.getElementById('url-char-count');
-            charCountElement.textContent = `${charCount}/2000 characters used`;
+            const statusElement = document.getElementById('sync-status');
+            statusElement.textContent = 'Pulling from database...';
+            statusElement.style.color = '#2196F3';
             
-            if (charCount > 2000) {
-                charCountElement.style.color = '#f44336';
-                charCountElement.textContent += ' (may not work in all browsers)';
-            } else {
-                charCountElement.style.color = '#666';
-            }
-            charCountElement.style.display = 'block';
-        }
-        
-        function copyShareURL() {
-            const urlInput = document.getElementById('share-url');
-            if (urlInput.value) {
-                urlInput.select();
-                document.execCommand('copy');
-                alert('URL copied to clipboard!');
-            } else {
-                alert('Generate a share URL first!');
-            }
-        }
-        
-        function loadFromURL() {
-            const params = new URLSearchParams(window.location.search);
-            const data = params.get('data');
-            if (data) {
-                try {
-                    const decoded = JSON.parse(atob(data));
-                    
-                    // Handle compressed data format
-                    if (decoded.i !== undefined) {
-                        // Compressed format
-                        monthlyIncome = decoded.i || 0;
-                        recurringExpenses = decoded.r || [];
+            db.collection('budgets').doc(budgetId).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const budgetData = doc.data();
+                        const dataSize = estimateDataSize(budgetData);
                         
-                        // Decompress categories
-                        categories = {};
-                        if (decoded.c) {
-                            Object.keys(decoded.c).forEach(name => {
-                                const cat = decoded.c[name];
-                                categories[name] = {
-                                    budget: cat.b || 0,
-                                    expenses: (cat.e || []).map(e => ({
-                                        description: e.d,
-                                        amount: e.a,
-                                        date: e.t
-                                    }))
-                                };
-                            });
+                        // Load the budget data
+                        monthlyIncome = budgetData.monthlyIncome || 0;
+                        categories = budgetData.categories || {};
+                        recurringExpenses = budgetData.recurringExpenses || [];
+                        
+                        // Update UI
+                        if (monthlyIncome > 0) {
+                            document.getElementById('income-section').style.display = 'none';
+                            document.getElementById('edit-income-btn').style.display = 'inline';
                         }
+                        
+                        renderCategories();
+                        renderRecurringExpenses();
+                        updateDisplay();
+                        
+                        // Save to local storage as backup
+                        localStorage.setItem('budgetData', JSON.stringify({
+                            monthlyIncome, categories, recurringExpenses
+                        }));
+                        
+                        statusElement.textContent = `Budget pulled from database successfully! (${dataSize} of 1GB used)`;
+                        statusElement.style.color = '#4CAF50';
+                        currentBudgetId = budgetId;
+                        syncEnabled = true;
                     } else {
-                        // Original format
-                        monthlyIncome = decoded.monthlyIncome || 0;
-                        categories = decoded.categories || {};
-                        recurringExpenses = decoded.recurringExpenses || [];
+                        statusElement.textContent = 'No budget found in database. Push your budget first.';
+                        statusElement.style.color = '#ff9800';
                     }
+                })
+                .catch(error => {
+                    statusElement.textContent = 'Pull failed: ' + error.message;
+                    statusElement.style.color = '#f44336';
+                });
+        }
+        
+        function generateShareLink() {
+            if (!currentBudgetId) {
+                alert('Please create or load a shared budget first');
+                return;
+            }
+            
+            const syncSettings = localStorage.getItem('budgetSync');
+            if (syncSettings) {
+                try {
+                    const { id, password } = JSON.parse(syncSettings);
+                    const rawPassword = atob(password); // Decode the password
                     
-                    renderCategories();
-                    renderRecurringExpenses();
-                    updateDisplay();
-                    saveData();
+                    // Create a shareable link with budget ID and password
+                    const shareLink = `${window.location.origin}${window.location.pathname}?sync=${encodeURIComponent(id)}&key=${encodeURIComponent(rawPassword)}`;
+                    
+                    const shareLinkElement = document.getElementById('share-link');
+                    shareLinkElement.value = shareLink;
+                    document.getElementById('share-link-container').style.display = 'block';
+                    
+                    // Select the link for easy copying
+                    shareLinkElement.select();
+                    document.execCommand('copy');
+                    
+                    document.getElementById('sync-status').textContent = 'Share link copied to clipboard!';
+                    document.getElementById('sync-status').style.color = '#4CAF50';
                 } catch (error) {
-                    console.error('Invalid URL data', error);
+                    console.error('Error generating share link:', error);
                 }
             }
         }
+        
+        function createSharedBudget() {
+            const budgetId = document.getElementById('budget-id').value.trim();
+            const password = document.getElementById('budget-password').value.trim();
+            
+            if (!budgetId || !password) {
+                alert('Please enter both a budget ID and password');
+                return;
+            }
+            
+            // Hash the password (in a real app, use a better hashing method)
+            const hashedPassword = btoa(password);
+            
+            // Add owner information
+            const ownerEmail = prompt('Enter your email (for ownership verification):', '');
+            if (!ownerEmail) return;
+            
+            // Check if budget already exists
+            db.collection('budgets').doc(budgetId).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        // Budget exists, check password and ownership
+                        const budgetData = doc.data();
+                        if (budgetData.password === hashedPassword) {
+                            // Check ownership
+                            if (budgetData.ownerEmail && budgetData.ownerEmail !== ownerEmail) {
+                                const isConfirmed = confirm(`This budget belongs to ${budgetData.ownerEmail}. Are you authorized to access it?`);
+                                if (!isConfirmed) return;
+                            }
+                            // Password matches, load the budget
+                            loadBudgetFromFirebase(budgetId, hashedPassword);
+                        } else {
+                            alert('A budget with this ID already exists with a different password');
+                        }
+                    } else {
+                        // Budget doesn't exist, create it
+                        const data = {
+                            monthlyIncome: monthlyIncome,
+                            categories: categories,
+                            recurringExpenses: recurringExpenses,
+                            password: hashedPassword,
+                            ownerEmail: ownerEmail,
+                            created: new Date().toISOString(),
+                            lastUpdated: new Date().toISOString()
+                        };
+                        
+                        db.collection('budgets').doc(budgetId).set(data)
+                            .then(() => {
+                                currentBudgetId = budgetId;
+                                syncEnabled = true;
+                                document.getElementById('sync-status').textContent = 'Shared budget created successfully!';
+                                document.getElementById('sync-status').style.color = '#4CAF50';
+                                localStorage.setItem('budgetSync', JSON.stringify({ id: budgetId, password: hashedPassword }));
+                                
+                                // Set up real-time listener
+                                setupRealtimeSync(budgetId);
+                            })
+                            .catch(error => {
+                                console.error('Error creating budget:', error);
+                                document.getElementById('sync-status').textContent = 'Failed to create budget: ' + error.message;
+                                document.getElementById('sync-status').style.color = '#f44336';
+                            });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking budget:', error);
+                    document.getElementById('sync-status').textContent = 'Error: ' + error.message;
+                    document.getElementById('sync-status').style.color = '#f44336';
+                });
+        }
+        
+        function loadSharedBudget() {
+            const budgetId = document.getElementById('budget-id').value.trim();
+            const password = document.getElementById('budget-password').value.trim();
+            
+            if (!budgetId || !password) {
+                alert('Please enter both a budget ID and password');
+                return;
+            }
+            
+            // Hash the password
+            const hashedPassword = btoa(password);
+            
+            loadBudgetFromFirebase(budgetId, hashedPassword);
+        }
+        
+        function loadBudgetFromFirebase(budgetId, hashedPassword) {
+            db.collection('budgets').doc(budgetId).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const budgetData = doc.data();
+                        
+                        // Verify password
+                        if (budgetData.password === hashedPassword) {
+                            // Check ownership
+                            if (budgetData.ownerEmail) {
+                                const userEmail = prompt(`This budget belongs to ${budgetData.ownerEmail}. Enter your email to verify access:`, '');
+                                if (!userEmail) return;
+                                
+                                if (userEmail !== budgetData.ownerEmail) {
+                                    const isConfirmed = confirm(`Your email doesn't match the owner's email. Are you authorized to access this budget?`);
+                                    if (!isConfirmed) return;
+                                }
+                            }
+                            
+                            // Password matches, load the budget
+                            monthlyIncome = budgetData.monthlyIncome || 0;
+                            categories = budgetData.categories || {};
+                            recurringExpenses = budgetData.recurringExpenses || [];
+                            
+                            // Update UI
+                            if (monthlyIncome > 0) {
+                                document.getElementById('income-section').style.display = 'none';
+                                document.getElementById('edit-income-btn').style.display = 'inline';
+                            }
+                            
+                            renderCategories();
+                            renderRecurringExpenses();
+                            updateDisplay();
+                            
+                            // Save to local storage as backup
+                            localStorage.setItem('budgetData', JSON.stringify({
+                                monthlyIncome, categories, recurringExpenses
+                            }));
+                            
+                            // Enable sync
+                            currentBudgetId = budgetId;
+                            syncEnabled = true;
+                            localStorage.setItem('budgetSync', JSON.stringify({ id: budgetId, password: hashedPassword }));
+                            
+                            document.getElementById('sync-status').textContent = 'Budget loaded successfully!';
+                            document.getElementById('sync-status').style.color = '#4CAF50';
+                            
+                            // Set up real-time listener
+                            setupRealtimeSync(budgetId);
+                        } else {
+                            alert('Incorrect password for this budget');
+                            document.getElementById('sync-status').textContent = 'Access denied: Incorrect password';
+                            document.getElementById('sync-status').style.color = '#f44336';
+                        }
+                    } else {
+                        alert('No budget found with this ID');
+                        document.getElementById('sync-status').textContent = 'Budget not found';
+                        document.getElementById('sync-status').style.color = '#f44336';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading budget:', error);
+                    document.getElementById('sync-status').textContent = 'Error: ' + error.message;
+                    document.getElementById('sync-status').style.color = '#f44336';
+                });
+        }
+        
+        function setupRealtimeSync(budgetId) {
+            // Set up real-time listener for changes
+            db.collection('budgets').doc(budgetId)
+                .onSnapshot(doc => {
+                    if (doc.exists) {
+                        const budgetData = doc.data();
+                        const localLastUpdate = localStorage.getItem('lastUpdate');
+                        
+                        // Only update if the data is newer than our last update
+                        if (!localLastUpdate || budgetData.lastUpdated > localLastUpdate) {
+                            // Don't update if we just saved the data ourselves
+                            if (budgetData.lastUpdated !== localStorage.getItem('lastUpdate')) {
+                                monthlyIncome = budgetData.monthlyIncome || 0;
+                                categories = budgetData.categories || {};
+                                recurringExpenses = budgetData.recurringExpenses || [];
+                                
+                                // Update UI
+                                if (monthlyIncome > 0) {
+                                    document.getElementById('income-section').style.display = 'none';
+                                    document.getElementById('edit-income-btn').style.display = 'inline';
+                                }
+                                
+                                renderCategories();
+                                renderRecurringExpenses();
+                                updateDisplay();
+                                
+                                document.getElementById('sync-status').textContent = 'Budget updated from cloud!';
+                                document.getElementById('sync-status').style.color = '#2196F3';
+                                setTimeout(() => {
+                                    document.getElementById('sync-status').textContent = '';
+                                }, 3000);
+                            }
+                        }
+                    }
+                }, error => {
+                    console.error('Error in real-time sync:', error);
+                });
+        }
+        
+        // Check for existing sync settings
+        function checkExistingSync() {
+            const syncSettings = localStorage.getItem('budgetSync');
+            if (syncSettings) {
+                try {
+                    const { id, password } = JSON.parse(syncSettings);
+                    if (id && password) {
+                        document.getElementById('budget-id').value = id;
+                        document.getElementById('budget-password').value = atob(password);
+                        document.getElementById('sync-status').textContent = 'Reconnecting to shared budget...';
+                        document.getElementById('sync-status').style.color = '#2196F3';
+                        loadBudgetFromFirebase(id, password);
+                    }
+                } catch (error) {
+                    console.error('Error parsing sync settings:', error);
+                }
+            }
+        }
+        
+        // Load data when page loads
+        window.onload = function() {
+            loadData();
+            
+            // Check connection status
+            checkConnection();
+        };
+
+        // No longer needed - URL sharing functionality removed
 
         // Allow Enter key to submit forms
         document.getElementById('income-input').addEventListener('keypress', function(e) {
@@ -730,6 +1064,14 @@
             if (confirm('WARNING: This will delete ALL your budget data! Are you sure you want to reset the application?')) {
                 if (confirm('FINAL WARNING: All data will be permanently lost. Continue?')) {
                     localStorage.removeItem('budgetData');
+                    
+                    // Reset local variables
+                    monthlyIncome = 0;
+                    categories = {};
+                    recurringExpenses = [];
+                    currentBudgetId = null;
+                    syncEnabled = false;
+                    
                     alert('Application reset successful. The page will now reload.');
                     window.location.reload();
                 }
