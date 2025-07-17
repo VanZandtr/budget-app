@@ -110,6 +110,7 @@ Works in all modern browsers including Chrome, Firefox, Safari, and Edge.
 
 ## Version History
 
+- **v2.1.0**: Enhanced mobile responsiveness with improved touch targets and layout
 - **v2.0.0**: Major UI redesign with 3-step workflow for shared budgets
 - **v1.9.0**: Reorganized workflow into clear steps
 - **v1.8.0**: Simplified sync interface

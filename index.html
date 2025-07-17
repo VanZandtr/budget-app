@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -17,6 +17,11 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0); /* Remove tap highlight on mobile */
+        }
+        
+        html {
+            scroll-behavior: smooth; /* Enable smooth scrolling */
         }
         
         body {
@@ -25,6 +30,7 @@
             min-height: 100vh;
             padding: 20px;
             position: relative;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
         
         .version {
@@ -34,6 +40,7 @@
             color: rgba(255, 255, 255, 0.8);
             font-size: 12px;
             font-weight: bold;
+            z-index: 1; /* Ensure it's above other elements */
         }
         
         .container {
@@ -43,6 +50,7 @@
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
         }
         
         h1 {
@@ -103,6 +111,17 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             font-size: 16px;
+            -webkit-appearance: none; /* Removes default styling on iOS */
+        }
+        
+        input[type="number"] {
+            -moz-appearance: textfield; /* Remove spinner on Firefox */
+        }
+        
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
         
         button {
@@ -111,6 +130,8 @@
             border: none;
             cursor: pointer;
             transition: background 0.3s;
+            min-height: 44px; /* Minimum touch target size */
+            touch-action: manipulation; /* Prevent delay on touch devices */
         }
         
         button:hover {
@@ -237,15 +258,133 @@
             font-size: 12px;
         }
         
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 0;
+                border-radius: 10px;
+            }
+            
+            body {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+            
             .add-category, .expense-input {
                 flex-direction: column;
+            }
+            
+            .category-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .category-header div {
+                margin-top: 8px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                width: 100%;
+            }
+            
+            .category {
+                padding: 12px;
+            }
+            
+            .expense-item {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px;
+            }
+            
+            .expense-item div:last-child {
+                margin-top: 5px;
+                align-self: flex-end;
+            }
+            
+            input, button {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .budget-summary {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .summary-card {
+                padding: 15px 10px;
+            }
+            
+            .delete-btn {
+                padding: 8px 12px; /* Larger touch target */
+            }
+            
+            .income-section, .recurring-section {
+                padding: 15px;
+            }
+            
+            hr.section-divider {
+                margin: 20px 0;
+            }
+        }
+        
+        /* Extra small devices */
+        @media (max-width: 375px) {
+            body {
+                padding: 5px;
+                font-size: 14px;
+            }
+            
+            .container {
+                padding: 10px;
+                border-radius: 8px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            h3 {
+                font-size: 16px;
+            }
+            
+            h4 {
+                font-size: 15px;
+            }
+            
+            .version {
+                top: 5px;
+                right: 10px;
+                font-size: 10px;
+            }
+            
+            input, button {
+                font-size: 14px;
+            }
+            
+            .delete-btn {
+                padding: 8px 12px;
+                min-height: 36px;
+            }
+            
+            .category {
+                padding: 10px;
+            }
+            
+            .sync-section, .share-section, .reset-section {
+                padding: 15px;
+                margin-top: 20px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="version">v2.0.1</div>
+    <div class="version">v2.1.0</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
         
@@ -278,7 +417,7 @@
             <h3>Step 1: Get Latest Budget</h3>
             <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-top: 15px; background: #f9f9f9;">
                 <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                    <button onclick="checkConnection()" style="background: #2196F3; flex-grow: 1;">🔌 Check Connection</button>
+                    <button onclick="checkConnection()" style="background: #2196F3; flex-grow: 1; padding: 12px;">🔌 Check Connection</button>
                 </div>
                 <div style="color: #666; margin-bottom: 20px; font-size: 14px;">
                     Make sure you're connected to the shared budget.
@@ -286,7 +425,7 @@
                 <div id="connection-status" style="margin: 10px 0; font-weight: bold;"></div>
                 
                 <div style="display: flex; align-items: center;">
-                    <button onclick="pullFromDatabase()" style="background: #9C27B0; flex-grow: 1;">📥 Get Latest Budget</button>
+                    <button onclick="pullFromDatabase()" style="background: #9C27B0; flex-grow: 1; padding: 12px;">📥 Get Latest Budget</button>
                 </div>
                 <div style="color: #666; margin-bottom: 10px; font-size: 14px;">
                     Always get the latest budget before making changes.
@@ -326,7 +465,7 @@
             <h3>Step 3: Save Your Changes</h3>
             <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-top: 15px; background: #f9f9f9;">
                 <div style="display: flex; align-items: center;">
-                    <button onclick="pushToDatabase()" style="background: #4CAF50; flex-grow: 1;">📤 Save To Shared Budget</button>
+                    <button onclick="pushToDatabase()" style="background: #4CAF50; flex-grow: 1; padding: 12px;">📤 Save To Shared Budget</button>
                 </div>
                 <div style="color: #666; margin-bottom: 10px; font-size: 14px;">
                     After making changes, save them so others can see them.
