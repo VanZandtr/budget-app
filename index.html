@@ -43,6 +43,69 @@
             z-index: 1; /* Ensure it's above other elements */
         }
         
+        .tabs-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            cursor: pointer;
+            margin-right: 2px;
+            border-radius: 8px 8px 0 0;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+            border: 2px solid #667eea;
+            border-bottom: 2px solid #667eea;
+            margin-bottom: -2px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .tab-name {
+            min-width: 60px;
+        }
+        
+        .tab-close {
+            background: none;
+            color: black;
+            border: none;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        
+        .add-tab {
+            background: none;
+            color: black;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -384,9 +447,14 @@
     </style>
 </head>
 <body>
-    <div class="version">v2.1.0</div>
+    <div class="version">v2.2.0</div>
     <div class="container">
         <h1>Monthly Budget Tracker</h1>
+        
+        <div class="tabs-container">
+            <div id="tabs"></div>
+            <button class="add-tab" onclick="addNewSheet()" title="Add new month">+</button>
+        </div>
         
         <div class="income-section" id="income-section">
             <h3>Monthly Income</h3>
@@ -500,17 +568,117 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         
-        let monthlyIncome = 0;
-        let categories = {};
-        let recurringExpenses = [];
+        let sheets = {};
+        let currentSheet = null;
         let currentBudgetId = null;
         let syncEnabled = false;
+        
+        // Helper functions for current sheet data
+        function getCurrentSheetData() {
+            return sheets[currentSheet] || { monthlyIncome: 0, categories: {}, recurringExpenses: [] };
+        }
+        
+        function getCurrentMonthName() {
+            const now = new Date();
+            return now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        }
+        
+        // Direct accessors for current sheet data
+        function getMonthlyIncome() { return getCurrentSheetData().monthlyIncome; }
+        function setMonthlyIncome(value) { sheets[currentSheet].monthlyIncome = value; }
+        function getCategories() { return getCurrentSheetData().categories; }
+        function setCategories(value) { sheets[currentSheet].categories = value; }
+        function getRecurringExpenses() { return getCurrentSheetData().recurringExpenses; }
+        function setRecurringExpenses(value) { sheets[currentSheet].recurringExpenses = value; }
+        
+        function renderTabs() {
+            const container = document.getElementById('tabs');
+            container.innerHTML = '';
+            
+            Object.keys(sheets).forEach(sheetName => {
+                const tab = document.createElement('div');
+                tab.className = `tab ${sheetName === currentSheet ? 'active' : ''}`;
+                
+                tab.innerHTML = `
+                    <span class="tab-name" ondblclick="renameSheet('${sheetName}')">${sheetName}</span>
+                    ${Object.keys(sheets).length > 1 ? `<button class="tab-close" onclick="deleteSheet('${sheetName}')" title="Delete sheet">×</button>` : ''}
+                `;
+                
+                tab.onclick = (e) => {
+                    if (!e.target.classList.contains('tab-close')) {
+                        switchToSheet(sheetName);
+                    }
+                };
+                
+                container.appendChild(tab);
+            });
+        }
+        
+        function switchToSheet(sheetName) {
+            currentSheet = sheetName;
+            
+            // Update UI for current sheet
+            if (getMonthlyIncome() > 0) {
+                document.getElementById('income-section').style.display = 'none';
+                document.getElementById('edit-income-btn').style.display = 'inline';
+            } else {
+                document.getElementById('income-section').style.display = 'block';
+                document.getElementById('edit-income-btn').style.display = 'none';
+            }
+            
+            renderTabs();
+            renderCategories();
+            renderRecurringExpenses();
+            updateDisplay();
+            saveData();
+        }
+        
+        function addNewSheet() {
+            const name = prompt('Enter name for new month:', getCurrentMonthName());
+            if (name && !sheets[name]) {
+                // Copy recurring expenses and income from current sheet
+                sheets[name] = {
+                    monthlyIncome: getMonthlyIncome(),
+                    categories: {},
+                    recurringExpenses: [...getRecurringExpenses()]
+                };
+                switchToSheet(name);
+            }
+        }
+        
+        function deleteSheet(sheetName) {
+            if (Object.keys(sheets).length <= 1) {
+                alert('Cannot delete the last sheet');
+                return;
+            }
+            
+            if (confirm(`Delete sheet "${sheetName}"?`)) {
+                delete sheets[sheetName];
+                if (currentSheet === sheetName) {
+                    currentSheet = Object.keys(sheets)[0];
+                }
+                switchToSheet(currentSheet);
+            }
+        }
+        
+        function renameSheet(oldName) {
+            const newName = prompt('Enter new name:', oldName);
+            if (newName && newName !== oldName && !sheets[newName]) {
+                sheets[newName] = sheets[oldName];
+                delete sheets[oldName];
+                if (currentSheet === oldName) {
+                    currentSheet = newName;
+                }
+                renderTabs();
+                saveData();
+            }
+        }
 
         function setIncome() {
             const input = document.getElementById('income-input');
             const amount = parseFloat(input.value);
             if (amount && amount > 0) {
-                monthlyIncome = amount;
+                setMonthlyIncome(amount);
                 input.value = '';
                 document.getElementById('income-section').style.display = 'none';
                 document.getElementById('edit-income-btn').style.display = 'inline';
@@ -529,11 +697,13 @@
             const name = nameInput.value.trim();
             const budget = parseFloat(budgetInput.value);
             
-            if (name && budget > 0 && !categories[name]) {
-                categories[name] = {
+            if (name && budget > 0 && !getCategories()[name]) {
+                const cats = getCategories();
+                cats[name] = {
                     budget: budget,
                     expenses: []
                 };
+                setCategories(cats);
                 nameInput.value = '';
                 budgetInput.value = '';
                 renderCategories();
@@ -544,7 +714,9 @@
 
         function deleteCategory(name) {
             if (confirm(`Delete category "${name}" and all its expenses?`)) {
-                delete categories[name];
+                const cats = getCategories();
+                delete cats[name];
+                setCategories(cats);
                 renderCategories();
                 updateDisplay();
                 saveData();
@@ -553,7 +725,9 @@
         
         function resetExpenses(categoryName) {
             if (confirm(`Reset all expenses in "${categoryName}"?`)) {
-                categories[categoryName].expenses = [];
+                const cats = getCategories();
+                cats[categoryName].expenses = [];
+                setCategories(cats);
                 renderCategories();
                 updateDisplay();
                 saveData();
@@ -568,11 +742,13 @@
             const amount = parseFloat(amountInput.value);
             
             if (description && amount && amount > 0) {
-                categories[categoryName].expenses.push({
+                const cats = getCategories();
+                cats[categoryName].expenses.push({
                     description: description,
                     amount: amount,
                     date: new Date().toLocaleDateString()
                 });
+                setCategories(cats);
                 
                 descInput.value = '';
                 amountInput.value = '';
@@ -583,33 +759,35 @@
         }
 
         function deleteExpense(categoryName, index) {
-            categories[categoryName].expenses.splice(index, 1);
+            const cats = getCategories();
+            cats[categoryName].expenses.splice(index, 1);
+            setCategories(cats);
             renderCategories();
             updateDisplay();
             saveData();
         }
 
         function getCategoryTotal(categoryName) {
-            return categories[categoryName].expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            return getCategories()[categoryName].expenses.reduce((sum, expense) => sum + expense.amount, 0);
         }
 
         function getTotalBudgeted() {
-            return Object.keys(categories).reduce((total, categoryName) => {
-                return total + categories[categoryName].budget;
+            return Object.keys(getCategories()).reduce((total, categoryName) => {
+                return total + getCategories()[categoryName].budget;
             }, 0);
         }
         
         function getTotalOverspent() {
-            return Object.keys(categories).reduce((total, categoryName) => {
+            return Object.keys(getCategories()).reduce((total, categoryName) => {
                 const spent = getCategoryTotal(categoryName);
-                const budget = categories[categoryName].budget;
+                const budget = getCategories()[categoryName].budget;
                 // Only count overspending against the remaining budget
                 return total + Math.max(0, spent - budget);
             }, 0);
         }
 
         function getTotalRecurring() {
-            return recurringExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+            return getRecurringExpenses().reduce((sum, expense) => sum + expense.amount, 0);
         }
 
         function updateDisplay() {
@@ -619,14 +797,14 @@
             
             // Calculate remaining by subtracting recurring expenses and budgeted amounts
             // Then subtract any overspending from categories
-            const remaining = monthlyIncome - totalRecurring - totalBudgeted - totalOverspent;
+            const remaining = getMonthlyIncome() - totalRecurring - totalBudgeted - totalOverspent;
             
             // For display purposes, show the total spent in categories
-            const totalCategorySpent = Object.keys(categories).reduce((total, categoryName) => {
+            const totalCategorySpent = Object.keys(getCategories()).reduce((total, categoryName) => {
                 return total + getCategoryTotal(categoryName);
             }, 0);
             
-            document.getElementById('total-income').textContent = `$${monthlyIncome.toFixed(2)}`;
+            document.getElementById('total-income').textContent = `$${getMonthlyIncome().toFixed(2)}`;
             document.getElementById('total-spent').textContent = `$${totalCategorySpent.toFixed(2)}`;
             document.getElementById('remaining-budget').textContent = `$${remaining.toFixed(2)}`;
             
@@ -634,7 +812,7 @@
             const remainingCard = document.querySelector('.remaining-card');
             if (remaining < 0) {
                 remainingCard.style.background = '#f44336';
-            } else if (remaining < monthlyIncome * 0.1) {
+            } else if (remaining < getMonthlyIncome() * 0.1) {
                 remainingCard.style.background = '#ff9800';
             } else {
                 remainingCard.style.background = '#2196F3';
@@ -645,11 +823,11 @@
             const container = document.getElementById('categories');
             container.innerHTML = '';
             
-            Object.keys(categories).forEach(categoryName => {
+            Object.keys(getCategories()).forEach(categoryName => {
                 const categoryDiv = document.createElement('div');
                 categoryDiv.className = 'category';
                 
-                const budget = categories[categoryName].budget;
+                const budget = getCategories()[categoryName].budget;
                 const spent = getCategoryTotal(categoryName);
                 const remaining = budget - spent;
                 const remainingColor = remaining < 0 ? '#f44336' : remaining < budget * 0.1 ? '#ff9800' : '#4CAF50';
@@ -687,7 +865,7 @@
                         <button onclick="addExpense('${categoryName}')">Add Expense</button>
                     </div>
                     <div class="expenses">
-                        ${categories[categoryName].expenses.map((expense, index) => `
+                        ${getCategories()[categoryName].expenses.map((expense, index) => `
                             <div class="expense-item">
                                 <div>
                                     <strong>${expense.description}</strong>
@@ -714,10 +892,12 @@
             const amount = parseFloat(amountInput.value);
             
             if (description && amount && amount > 0) {
-                recurringExpenses.push({
+                const recurring = getRecurringExpenses();
+                recurring.push({
                     description: description,
                     amount: amount
                 });
+                setRecurringExpenses(recurring);
                 
                 descInput.value = '';
                 amountInput.value = '';
@@ -728,7 +908,9 @@
         }
 
         function deleteRecurringExpense(index) {
-            recurringExpenses.splice(index, 1);
+            const recurring = getRecurringExpenses();
+            recurring.splice(index, 1);
+            setRecurringExpenses(recurring);
             renderRecurringExpenses();
             updateDisplay();
             saveData();
@@ -738,7 +920,7 @@
             const container = document.getElementById('recurring-expenses');
             container.innerHTML = '';
             
-            recurringExpenses.forEach((expense, index) => {
+            getRecurringExpenses().forEach((expense, index) => {
                 const expenseDiv = document.createElement('div');
                 expenseDiv.className = 'expense-item';
                 
@@ -758,9 +940,8 @@
 
         function saveData() {
             const data = {
-                monthlyIncome: monthlyIncome,
-                categories: categories,
-                recurringExpenses: recurringExpenses
+                sheets: sheets,
+                currentSheet: currentSheet
             };
             localStorage.setItem('budgetData', JSON.stringify(data));
             
@@ -774,9 +955,8 @@
             if (!currentBudgetId) return;
             
             const data = {
-                monthlyIncome: monthlyIncome,
-                categories: categories,
-                recurringExpenses: recurringExpenses,
+                sheets: sheets,
+                currentSheet: currentSheet,
                 lastUpdated: new Date().toISOString()
             };
             
@@ -799,29 +979,53 @@
             const saved = localStorage.getItem('budgetData');
             if (saved) {
                 const data = JSON.parse(saved);
-                monthlyIncome = data.monthlyIncome || 0;
-                categories = data.categories || {};
-                recurringExpenses = data.recurringExpenses || [];
                 
-                // Convert old format to new format
-                Object.keys(categories).forEach(name => {
-                    if (Array.isArray(categories[name])) {
-                        categories[name] = {
-                            budget: 0,
-                            expenses: categories[name]
-                        };
-                    }
-                });
-                
-                // Hide income section if income is already set
-                if (monthlyIncome > 0) {
-                    document.getElementById('income-section').style.display = 'none';
-                    document.getElementById('edit-income-btn').style.display = 'inline';
+                // Handle old format conversion
+                if (data.monthlyIncome !== undefined) {
+                    // Convert old single-sheet format to multi-sheet
+                    const defaultSheet = getCurrentMonthName();
+                    sheets = {
+                        [defaultSheet]: {
+                            monthlyIncome: data.monthlyIncome || 0,
+                            categories: data.categories || {},
+                            recurringExpenses: data.recurringExpenses || []
+                        }
+                    };
+                    currentSheet = defaultSheet;
+                } else {
+                    // New multi-sheet format
+                    sheets = data.sheets || {};
+                    currentSheet = data.currentSheet;
                 }
                 
-                renderCategories();
-                renderRecurringExpenses();
-                updateDisplay();
+                // Ensure we have at least one sheet
+                if (Object.keys(sheets).length === 0) {
+                    const defaultSheet = getCurrentMonthName();
+                    sheets[defaultSheet] = { monthlyIncome: 0, categories: {}, recurringExpenses: [] };
+                    currentSheet = defaultSheet;
+                }
+                
+                // Convert old category format
+                Object.keys(sheets).forEach(sheetName => {
+                    Object.keys(sheets[sheetName].categories).forEach(name => {
+                        if (Array.isArray(sheets[sheetName].categories[name])) {
+                            sheets[sheetName].categories[name] = {
+                                budget: 0,
+                                expenses: sheets[sheetName].categories[name]
+                            };
+                        }
+                    });
+                });
+                
+                renderTabs();
+                switchToSheet(currentSheet);
+            } else {
+                // Initialize with current month
+                const defaultSheet = getCurrentMonthName();
+                sheets[defaultSheet] = { monthlyIncome: 0, categories: {}, recurringExpenses: [] };
+                currentSheet = defaultSheet;
+                renderTabs();
+                switchToSheet(currentSheet);
             }
         }
 
@@ -860,9 +1064,8 @@
             const budgetId = 'shared-budget'; // Fixed ID for simplicity
             
             const data = {
-                monthlyIncome: monthlyIncome,
-                categories: categories,
-                recurringExpenses: recurringExpenses,
+                sheets: sheets,
+                currentSheet: currentSheet,
                 lastUpdated: new Date().toISOString()
             };
             
@@ -897,25 +1100,28 @@
                         const budgetData = doc.data();
                         const dataSize = estimateDataSize(budgetData);
                         
-                        // Load the budget data
-                        monthlyIncome = budgetData.monthlyIncome || 0;
-                        categories = budgetData.categories || {};
-                        recurringExpenses = budgetData.recurringExpenses || [];
-                        
-                        // Update UI
-                        if (monthlyIncome > 0) {
-                            document.getElementById('income-section').style.display = 'none';
-                            document.getElementById('edit-income-btn').style.display = 'inline';
+                        // Handle both old and new formats
+                        if (budgetData.sheets) {
+                            sheets = budgetData.sheets;
+                            currentSheet = budgetData.currentSheet || Object.keys(sheets)[0];
+                        } else {
+                            // Convert old format
+                            const defaultSheet = getCurrentMonthName();
+                            sheets = {
+                                [defaultSheet]: {
+                                    monthlyIncome: budgetData.monthlyIncome || 0,
+                                    categories: budgetData.categories || {},
+                                    recurringExpenses: budgetData.recurringExpenses || []
+                                }
+                            };
+                            currentSheet = defaultSheet;
                         }
                         
-                        renderCategories();
-                        renderRecurringExpenses();
-                        updateDisplay();
+                        renderTabs();
+                        switchToSheet(currentSheet);
                         
                         // Save to local storage as backup
-                        localStorage.setItem('budgetData', JSON.stringify({
-                            monthlyIncome, categories, recurringExpenses
-                        }));
+                        saveData();
                         
                         statusElement.textContent = `Budget pulled from database successfully! (${dataSize} of 1GB used)`;
                         statusElement.style.color = '#4CAF50';
@@ -999,9 +1205,8 @@
                     } else {
                         // Budget doesn't exist, create it
                         const data = {
-                            monthlyIncome: monthlyIncome,
-                            categories: categories,
-                            recurringExpenses: recurringExpenses,
+                            sheets: sheets,
+                            currentSheet: currentSheet,
                             password: hashedPassword,
                             ownerEmail: ownerEmail,
                             created: new Date().toISOString(),
@@ -1067,25 +1272,28 @@
                                 }
                             }
                             
-                            // Password matches, load the budget
-                            monthlyIncome = budgetData.monthlyIncome || 0;
-                            categories = budgetData.categories || {};
-                            recurringExpenses = budgetData.recurringExpenses || [];
-                            
-                            // Update UI
-                            if (monthlyIncome > 0) {
-                                document.getElementById('income-section').style.display = 'none';
-                                document.getElementById('edit-income-btn').style.display = 'inline';
+                            // Handle both old and new formats
+                            if (budgetData.sheets) {
+                                sheets = budgetData.sheets;
+                                currentSheet = budgetData.currentSheet || Object.keys(sheets)[0];
+                            } else {
+                                // Convert old format
+                                const defaultSheet = getCurrentMonthName();
+                                sheets = {
+                                    [defaultSheet]: {
+                                        monthlyIncome: budgetData.monthlyIncome || 0,
+                                        categories: budgetData.categories || {},
+                                        recurringExpenses: budgetData.recurringExpenses || []
+                                    }
+                                };
+                                currentSheet = defaultSheet;
                             }
                             
-                            renderCategories();
-                            renderRecurringExpenses();
-                            updateDisplay();
+                            renderTabs();
+                            switchToSheet(currentSheet);
                             
                             // Save to local storage as backup
-                            localStorage.setItem('budgetData', JSON.stringify({
-                                monthlyIncome, categories, recurringExpenses
-                            }));
+                            saveData();
                             
                             // Enable sync
                             currentBudgetId = budgetId;
@@ -1127,19 +1335,25 @@
                         if (!localLastUpdate || budgetData.lastUpdated > localLastUpdate) {
                             // Don't update if we just saved the data ourselves
                             if (budgetData.lastUpdated !== localStorage.getItem('lastUpdate')) {
-                                monthlyIncome = budgetData.monthlyIncome || 0;
-                                categories = budgetData.categories || {};
-                                recurringExpenses = budgetData.recurringExpenses || [];
-                                
-                                // Update UI
-                                if (monthlyIncome > 0) {
-                                    document.getElementById('income-section').style.display = 'none';
-                                    document.getElementById('edit-income-btn').style.display = 'inline';
+                                // Handle both old and new formats
+                                if (budgetData.sheets) {
+                                    sheets = budgetData.sheets;
+                                    currentSheet = budgetData.currentSheet || Object.keys(sheets)[0];
+                                } else {
+                                    // Convert old format
+                                    const defaultSheet = getCurrentMonthName();
+                                    sheets = {
+                                        [defaultSheet]: {
+                                            monthlyIncome: budgetData.monthlyIncome || 0,
+                                            categories: budgetData.categories || {},
+                                            recurringExpenses: budgetData.recurringExpenses || []
+                                        }
+                                    };
+                                    currentSheet = defaultSheet;
                                 }
                                 
-                                renderCategories();
-                                renderRecurringExpenses();
-                                updateDisplay();
+                                renderTabs();
+                                switchToSheet(currentSheet);
                                 
                                 document.getElementById('sync-status').textContent = 'Budget updated from cloud!';
                                 document.getElementById('sync-status').style.color = '#2196F3';
@@ -1206,9 +1420,8 @@
                     localStorage.removeItem('budgetData');
                     
                     // Reset local variables
-                    monthlyIncome = 0;
-                    categories = {};
-                    recurringExpenses = [];
+                    sheets = {};
+                    currentSheet = null;
                     currentBudgetId = null;
                     syncEnabled = false;
                     
